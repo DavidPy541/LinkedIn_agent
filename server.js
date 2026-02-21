@@ -63,6 +63,28 @@ app.get("/messages/debug", requireKey, async (req, res) => {
       timeout: 60000
     });
 
+    // počkej chvíli
+    await page.waitForTimeout(5000);
+
+    const currentUrl = page.url();
+    const title = await page.title();
+
+    // uložíme screenshot
+    await page.screenshot({ path: "/tmp/messaging.png", fullPage: true });
+
+    // uložíme HTML
+    const html = await page.content();
+    require("fs").writeFileSync("/tmp/messaging.html", html);
+
+    console.log("Messaging loaded URL:", currentUrl);
+
+    return res.json({
+      url: currentUrl,
+      title: title,
+      screenshot: "/tmp/messaging.png",
+      html: "/tmp/messaging.html"
+    });
+
     await page.waitForSelector("body", { timeout: 30000 });
 
     const url = page.url();
@@ -250,6 +272,14 @@ app.post("/messages/:threadId/mark-read", requireKey, async (req, res) => {
     await context.close();
     await browser.close();
   }
+});
+
+app.get("/debug/file", requireKey, (req, res) => {
+  const file = req.query.name;
+  if (!file) return res.status(400).send("Missing name");
+
+  const path = `/tmp/${file}`;
+  res.sendFile(path);
 });
 
 app.listen(PORT, () => console.log(`LI worker running on :${PORT}`));
