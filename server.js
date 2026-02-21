@@ -97,9 +97,12 @@ app.get("/messages/unread", requireKey, async (req, res) => {
     const page = await context.newPage();
 
     await page.goto(`${BASE}/messaging/`, {
-      waitUntil: "domcontentloaded",
-      timeout: 10000,
+      waitUntil: "commit",
+      timeout: 20000
     });
+
+    await page.waitForSelector("body", { timeout: 15000 });
+    await page.waitForTimeout(3000);
 
     await page.waitForTimeout(1000);
     await ensureLoggedIn(page);
