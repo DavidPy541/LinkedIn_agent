@@ -58,8 +58,10 @@ app.get("/messages/debug", requireKey, async (req, res) => {
     context = ctx.context;
 
     const page = await context.newPage();
-    await page.goto("https://www.linkedin.com/feed/", { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(3000);
+    await page.goto("https://www.linkedin.com/messaging/", { 
+      waitUntil: "networkidle",
+      timeout: 60000
+    });
 
     const url = page.url();
     const title = await page.title();
