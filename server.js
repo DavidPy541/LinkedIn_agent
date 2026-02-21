@@ -25,10 +25,14 @@ async function newContext() {
     args: ["--disable-blink-features=AutomationControlled"],
   });
 
-  const context = await browser.newContext({
-    storageState: "storageState.json",
-    viewport: { width: 1366, height: 768 },
-  });
+  let context;
+
+  if (process.env.STORAGE_STATE_JSON) {
+    const state = JSON.parse(process.env.STORAGE_STATE_JSON);
+    context = await browser.newContext({ storageState: state });
+  } else {
+    context = await browser.newContext({ storageState: "storageState.json" });
+  }
 
   return { browser, context };
 }
