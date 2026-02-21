@@ -46,10 +46,14 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 
 // DEBUG login test
 app.get("/messages/debug", requireKey, async (req, res) => {
-  const { browser, context } = await newContext();
-  const page = await context.newPage();
+  let browser, context;
 
   try {
+    const ctx = await newContext();
+    browser = ctx.browser;
+    context = ctx.context;
+
+    const page = await context.newPage();
     await page.goto("https://www.linkedin.com/feed/", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(3000);
 
@@ -57,13 +61,14 @@ app.get("/messages/debug", requireKey, async (req, res) => {
     const title = await page.title();
 
     res.json({ url, title });
-    } catch (e) {
+
+  } catch (e) {
     console.error("DEBUG ERROR:", e);
     res.status(500).json({ error: String(e?.message || e) });
-    }
+
   } finally {
-    await context.close();
-    await browser.close();
+    if (context) await context.close();
+    if (browser) await browser.close();
   }
 });
 
