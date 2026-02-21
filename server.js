@@ -63,10 +63,10 @@ app.get("/messages/debug", requireKey, async (req, res) => {
 
     await page.goto(`${BASE}/feed/`, {
       waitUntil: "domcontentloaded",
-      timeout: 60000,
+      timeout: 10000,
     });
 
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(1000);
 
     const url = page.url();
     const title = await page.title();
@@ -98,10 +98,10 @@ app.get("/messages/unread", requireKey, async (req, res) => {
 
     await page.goto(`${BASE}/messaging/`, {
       waitUntil: "domcontentloaded",
-      timeout: 60000,
+      timeout: 10000,
     });
 
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(1000);
     await ensureLoggedIn(page);
 
     const items = page.locator("li.msg-conversation-listitem");
@@ -126,8 +126,8 @@ app.get("/messages/unread", requireKey, async (req, res) => {
       const isUnread = unreadByClass || unreadBadge || unreadByText;
       if (!isUnread) continue;
 
-      await item.click({ timeout: 10000 });
-      await page.waitForTimeout(1000);
+      await item.click({ timeout: 1000 });
+      await page.waitForTimeout(500);
 
       const openedUrl = page.url();
       const threadId =
@@ -171,10 +171,10 @@ app.post("/messages/:threadId/mark-read", requireKey, async (req, res) => {
 
     await page.goto(`${BASE}/messaging/thread/${threadId}/`, {
       waitUntil: "domcontentloaded",
-      timeout: 60000,
+      timeout: 10000,
     });
 
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(1000);
     await ensureLoggedIn(page);
 
     res.json({ ok: true, threadId });
