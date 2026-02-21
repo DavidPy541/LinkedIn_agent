@@ -100,6 +100,9 @@ app.get("/messages/unread", requireKey, async (req, res) => {
       waitUntil: "commit",
       timeout: 20000
     });
+    
+    const rawPage = await page.content();
+    fs.writeFileSync("/tmp/unread_page_raw.html", rawPage);
 
     await page.waitForSelector("body", { timeout: 15000 });
     await page.waitForTimeout(3000);
