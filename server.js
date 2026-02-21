@@ -57,8 +57,10 @@ app.get("/messages/debug", requireKey, async (req, res) => {
     const title = await page.title();
 
     res.json({ url, title });
-  } catch (e) {
-    res.status(500).json({ error: String(e) });
+    } catch (e) {
+    console.error("DEBUG ERROR:", e);
+    res.status(500).json({ error: String(e?.message || e) });
+    }
   } finally {
     await context.close();
     await browser.close();
