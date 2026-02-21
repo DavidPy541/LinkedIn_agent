@@ -104,6 +104,14 @@ app.get("/messages/unread", requireKey, async (req, res) => {
     await page.waitForTimeout(1000);
     await ensureLoggedIn(page);
 
+    // FORENSIC DEBUG
+    await page.screenshot({ path: "/tmp/unread_page.png", fullPage: true });
+
+    const html = await page.content();
+    fs.writeFileSync("/tmp/unread_page.html", html);
+
+    console.log("HTML length:", html.length);
+
     const items = page.locator("li.msg-conversation-listitem");
     const total = await items.count();
 
@@ -187,6 +195,14 @@ app.post("/messages/:threadId/mark-read", requireKey, async (req, res) => {
     if (context) await context.close();
     if (browser) await browser.close();
   }
+});
+
+app.get("/debug/file", requireKey, (req, res) => {
+  const file = req.query.name;
+  if (!file) return res.status(400).send("Missing name");
+
+  const path = `/tmp/${file}`;
+  res.sendFile(path);
 });
 
 app.listen(PORT, () => {
