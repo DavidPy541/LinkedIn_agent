@@ -1,0 +1,17 @@
+# deps
+node_modules/
+
+# local/debug
+debug_*.png
+debug_*.html
+
+# secrets / sessions
+storageState.json
+*.storageState.json
+
+# binaries / installers
+cloudflared
+*.deb
+
+# misc
+.DS_Store
