@@ -18,29 +18,36 @@ function requireKey(req, res, next) {
   next();
 }
 
-// ---------------- PLAYWRIGHT ----------------
-async function newContext() {
-  const browser = await chromium.launch({
-    headless: true,
-    args: ["--disable-blink-features=AutomationControlled"],
-  });
+// ---------------- PLAYWRIGHT (PERSISTENT PROFILE) ----------------
 
-  let context;
+let context = null;
+let page = null;
 
-  if (process.env.STORAGE_STATE_JSON) {
-    const state = JSON.parse(process.env.STORAGE_STATE_JSON);
-    context = await browser.newContext({ storageState: state });
-  } else {
-    context = await browser.newContext({ storageState: "storageState.json" });
-  }
+async function getPage() {
+  if (page) return page;
 
-  return { browser, context };
+  console.log("Launching persistent LinkedIn profile...");
+
+  context = await chromium.launchPersistentContext(
+    "./linkedin-profile",
+    {
+      headless: true,
+      args: ["--disable-blink-features=AutomationControlled"],
+      viewport: { width: 1366, height: 768 },
+    }
+  );
+
+  page = context.pages()[0] || await context.newPage();
+
+  console.log("Browser ready.");
+
+  return page;
 }
 
 async function ensureLoggedIn(page) {
   const url = page.url();
   if (url.includes("/login")) {
-    throw new Error("LinkedIn session invalid → regenerate storageState.json");
+    throw new Error("LinkedIn session invalid – please login again");
   }
 }
 
@@ -52,18 +59,12 @@ app.get("/health", (req, res) => {
 
 // ---- DEBUG FEED ----
 app.get("/messages/debug", requireKey, async (req, res) => {
-  let browser, context;
-
   try {
-    const ctx = await newContext();
-    browser = ctx.browser;
-    context = ctx.context;
-
-    const page = await context.newPage();
+    const page = await getPage();
 
     await page.goto(`${BASE}/feed/`, {
       waitUntil: "domcontentloaded",
-      timeout: 10000,
+      timeout: 15000,
     });
 
     await page.waitForTimeout(1000);
@@ -76,10 +77,6 @@ app.get("/messages/debug", requireKey, async (req, res) => {
   } catch (e) {
     console.error("DEBUG ERROR:", e);
     res.status(500).json({ error: String(e?.message || e) });
-
-  } finally {
-    if (context) await context.close();
-    if (browser) await browser.close();
   }
 });
 
@@ -87,36 +84,16 @@ app.get("/messages/debug", requireKey, async (req, res) => {
 app.get("/messages/unread", requireKey, async (req, res) => {
   const limit = Number(req.query.limit || 10);
 
-  let browser, context;
-
   try {
-    const ctx = await newContext();
-    browser = ctx.browser;
-    context = ctx.context;
-
-    const page = await context.newPage();
+    const page = await getPage();
 
     await page.goto(`${BASE}/messaging/`, {
-      waitUntil: "commit",
+      waitUntil: "domcontentloaded",
       timeout: 20000
     });
-    
-    const rawPage = await page.content();
-    fs.writeFileSync("/tmp/unread_page_raw.html", rawPage);
 
-    await page.waitForSelector("body", { timeout: 15000 });
     await page.waitForTimeout(3000);
-
-    await page.waitForTimeout(1000);
     await ensureLoggedIn(page);
-
-    // FORENSIC DEBUG
-    await page.screenshot({ path: "/tmp/unread_page.png", fullPage: true });
-
-    const html = await page.content();
-    fs.writeFileSync("/tmp/unread_page.html", html);
-
-    console.log("HTML length:", html.length);
 
     const items = page.locator("li.msg-conversation-listitem");
     const total = await items.count();
@@ -163,10 +140,6 @@ app.get("/messages/unread", requireKey, async (req, res) => {
   } catch (e) {
     console.error("UNREAD ERROR:", e);
     res.status(500).json({ error: String(e?.message || e) });
-
-  } finally {
-    if (context) await context.close();
-    if (browser) await browser.close();
   }
 });
 
@@ -174,18 +147,12 @@ app.get("/messages/unread", requireKey, async (req, res) => {
 app.post("/messages/:threadId/mark-read", requireKey, async (req, res) => {
   const { threadId } = req.params;
 
-  let browser, context;
-
   try {
-    const ctx = await newContext();
-    browser = ctx.browser;
-    context = ctx.context;
-
-    const page = await context.newPage();
+    const page = await getPage();
 
     await page.goto(`${BASE}/messaging/thread/${threadId}/`, {
       waitUntil: "domcontentloaded",
-      timeout: 10000,
+      timeout: 15000,
     });
 
     await page.waitForTimeout(1000);
@@ -196,19 +163,7 @@ app.post("/messages/:threadId/mark-read", requireKey, async (req, res) => {
   } catch (e) {
     console.error("MARK READ ERROR:", e);
     res.status(500).json({ error: String(e?.message || e) });
-
-  } finally {
-    if (context) await context.close();
-    if (browser) await browser.close();
   }
-});
-
-app.get("/debug/file", requireKey, (req, res) => {
-  const file = req.query.name;
-  if (!file) return res.status(400).send("Missing name");
-
-  const path = `/tmp/${file}`;
-  res.sendFile(path);
 });
 
 app.listen(PORT, () => {
