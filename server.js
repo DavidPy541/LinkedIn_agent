@@ -2,6 +2,8 @@ import express from "express";
 import { chromium } from "playwright";
 import fs from "fs";
 
+console.log("SERVER VERSION: 2026-02-28-DEBUG");
+
 const app = express();
 app.use(express.json());
 
