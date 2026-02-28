@@ -33,7 +33,7 @@ async function getPage() {
   context = await chromium.launchPersistentContext(
     "./linkedin-profile",
     {
-      headless: false,
+      headless: true,
       args: ["--disable-blink-features=AutomationControlled"],
       viewport: { width: 1366, height: 768 },
     }
